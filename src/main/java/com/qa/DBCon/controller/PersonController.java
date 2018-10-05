@@ -15,7 +15,7 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
-
+import com.qa.DBCon.exception.ResourceNotFoundException;
 import com.qa.DBCon.model.Order;
 import com.qa.DBCon.repository.OrderRepository;
 import com.qa.DBCon.repository.mySpringBootRepo;
@@ -25,7 +25,7 @@ import com.qa.DBCon.repository.mySpringBootRepo;
 public class PersonController {
 
 	@Autowired 
-	private OrderRepository orderRepository;
+	private OrderRepository orderRepo;
 	
 	@Autowired
 	private mySpringBootRepo myRepo;
@@ -33,7 +33,7 @@ public class PersonController {
 	@GetMapping("/person/{personId}/orders")
 	public Page<Order> getAllOrdersByPersonId(@PathVariable (value ="person_id") Long personId, Pageable pageable)
 	{
-		return orderRepository.findByPersonId(personId, pageable);
+		return orderRepo.findByPersonId(personId, pageable);
 	}
 	
 //	@PostMapping("/person/{personId}/orders")
@@ -50,6 +50,33 @@ public class PersonController {
 	{
 		return myRepo.findById(personId).map(myRepo -> {order.setPerson(myRepo);
 		return orderRepo.save(order);}).orElseThrow(() -> new ResourceNotFoundException("Person", "id", order));
+	}
+	
+	
+	@PutMapping("/person/{personId}/orders/{orderId}")
+	public Order updateOrder(@PathVariable (value="personId") Long personId,
+			@PathVariable(value="orderId") Long orderId,
+			@Valid@RequestBody Order orderRequest)
+	{
+		if(!myRepo.existsById(personId))
+		{
+			throw new ResourceNotFoundException("Person", "id", orderRequest);
+		}
+		return orderRepo.findById(orderId).map(order -> {order.setTitle(orderRequest.getTitle());
+		return orderRepo.save(order);}).orElseThrow(() -> new ResourceNotFoundException("Order Id", "id", orderRequest));
+	}
+	
+	@DeleteMapping("/person/{personId}/orders/{orderId}")
+	public ResponseEntity<?> deleteComment (@PathVariable (value="personId") Long personId,
+			@PathVariable(value="orderId") Long orderId)
+	{
+		if(!myRepo.existsById(personId))
+		{
+			throw new ResourceNotFoundException("Person", "id", personId);
+		}
+		return orderRepo.findById(orderId).map(order -> {orderRepo.delete(order);
+		return ResponseEntity.ok().build();}).orElseThrow(() -> new ResourceNotFoundException("Order Id", orderId.toString(), null));
+
 	}
 	
 	
